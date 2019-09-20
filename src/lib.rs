@@ -202,6 +202,7 @@ pub fn stabilize(stable: bool) {
 
     if stable {
         log::info!("genesis stabilized");
+        std::fs::remove_file(gdir.join("changing")).ok();
 
         let filep1 = gdir.join("current.toml");
         let filep2 = gdir.join("stable.toml");
@@ -209,7 +210,6 @@ pub fn stabilize(stable: bool) {
             log::warn!("{:?}", e);
             return;
         }
-        std::fs::remove_file(gdir.join("changing")).ok();
         return;
     }
 

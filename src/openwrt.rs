@@ -187,7 +187,8 @@ config wifi-device '{}'
 config wifi-iface   '{}'
     option device   '{}'
     option mode     '{}'
-", name, device_name, mode)?;
+    option ifname   '{}'
+", name, device_name, mode, name)?;
 
         if let Some(br) = &interface.bridge {
             write!(&mut self.out_wireless , "    option network  '{}'\n", br)?;
@@ -325,8 +326,7 @@ config wireguard_{}
         let mut f = std::fs::File::create("/etc/config/network")?;
         f.write_all(&self.out_network)?;
 
-        Command::new("/etc/init.d/network")
-            .arg("restart")
+        Command::new("/etc/devguard/genesis/post")
             .spawn().ok();
 
         Ok(())
