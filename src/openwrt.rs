@@ -1,9 +1,10 @@
 use super::genesis;
-use std::io::{Write};
+use std::io::{Write, Read};
 use std::io::{Error,ErrorKind};
 use std::collections::HashMap;
 use ipnet::IpNet;
 use std::process::Command;
+use handlebars::Handlebars;
 
 #[derive(Default)]
 struct Interface {
@@ -20,7 +21,8 @@ pub struct Emitter{
     devices:        HashMap<String, Device>,
     interfaces:     HashMap<String, Interface>,
     out_wireless:   Vec<u8>,
-    out_network:    Vec<u8>
+    out_network:    Vec<u8>,
+    tplout:         HashMap<String, String>,
 }
 
 impl Emitter {
@@ -30,6 +32,7 @@ impl Emitter {
             interfaces:     Default::default(),
             out_wireless:   Vec::new(),
             out_network:    Vec::new(),
+            tplout:         HashMap::new(),
         }
     }
 
@@ -41,6 +44,11 @@ impl Emitter {
 
         for (name, interface) in &config.interface {
             self.interface(name, &interface)?;
+        }
+
+
+        for (name, template) in &config.template {
+            self.template(name, &template)?;
         }
 
         write!(&mut self.out_network, "
@@ -162,11 +170,11 @@ config wifi-device '{}'
 
     fn wifi(&mut self, name: &str, interface: &genesis::Interface) -> Result<(),Error> {
 
-        let (device_name, device) = match &interface.device {
+        let device_name = match &interface.device {
             None => return Err(Error::new(ErrorKind::Other, format!("wifi interface missing device {}'", name))),
             Some(v) => match self.devices.get(v) {
                 None => return Err(Error::new(ErrorKind::Other, format!("undeclared interface '{}' used in device {}'", v, name))),
-                Some(v2) => (v.to_string(), v)
+                Some(_) => v.to_string(),
             }
         };
 
@@ -275,45 +283,65 @@ config interface '{}'
     option disabled '0'
 ", name, wg.private_key)?;
 
-
         if let Some(ipaddr) = &interface.ipaddr {
             for addr in ipaddr {
                 write!(&mut self.out_network, "    list addresses '{}'\n", addr)?;
             }
         }
 
-        if let Some(peers) = &wg.peers {
-            for peer in peers {
-                write!(&mut self.out_network, "
+        let peer = match &wg.peers {
+            Some(v) if v.len() == 1 => v.first().unwrap(),
+            _ => {
+                return Err(Error::new(ErrorKind::Other, format!("need exactly one [interface.{}.wireguard.peers] section", name)));
+            }
+        };
+
+
+        write!(&mut self.out_network, "
 config wireguard_{}
     option public_key '{}'
     option route_allowed_ips '{}'
 ", name, peer.public_key, if peer.autoroute.clone().unwrap_or_default() {"1"} else {"0"})?;
 
-                let endpoint : Vec<&str> = peer.endpoint.split(":").collect();
-                if endpoint.len() != 2 {
-                    return Err(Error::new(ErrorKind::Other, format!("invalid wg endpoint: {}", peer.endpoint)));
-                }
-                match endpoint[1].parse::<u16>() {
-                    Err(e) => {
-                        return Err(Error::new(ErrorKind::Other, format!("invalid wg endpoint port: {}", endpoint[1])));
-                    }
-                    Ok(v) => {
-                        write!(&mut self.out_network, "    option endpoint_port '{}'\n", v)?;
-                    },
-                };
-                write!(&mut self.out_network, "    option endpoint_host '{}'\n", endpoint[0])?;
-
-
-                if let Some(v) = &peer.keepalive {
-                    write!(&mut self.out_network, "    option persistent_keepalive '{}'\n", v)?;
-                }
-
-                for route in &peer.routes {
-                    write!(&mut self.out_network, "    list allowed_ips '{}'\n", route)?;
-                }
-            }
+        if let Some(psk) = &peer.psk {
+            write!(&mut self.out_network, "    option preshared_key '{}'\n", psk)?;
         }
+
+        let endpoint : Vec<&str> = peer.endpoint.split(":").collect();
+        if endpoint.len() != 2 {
+            return Err(Error::new(ErrorKind::Other, format!("invalid wg endpoint: {}", peer.endpoint)));
+        }
+        match endpoint[1].parse::<u16>() {
+            Err(e) => {
+                return Err(Error::new(ErrorKind::Other, format!("invalid wg endpoint port: {}: {}", endpoint[1], e)));
+            }
+            Ok(v) => {
+                write!(&mut self.out_network, "    option endpoint_port '{}'\n", v)?;
+            },
+        };
+        write!(&mut self.out_network, "    option endpoint_host '{}'\n", endpoint[0])?;
+
+
+        if let Some(v) = &peer.keepalive {
+            write!(&mut self.out_network, "    option persistent_keepalive '{}'\n", v)?;
+        }
+
+        for route in &peer.routes {
+            write!(&mut self.out_network, "    list allowed_ips '{}'\n", route)?;
+        }
+
+        Ok(())
+    }
+
+    fn template(&mut self, _name: &str, template: &genesis::Template) -> Result<(),Error> {
+        let p = std::path::Path::new("/etc/devguard/genesis/templates/").join(&template.template);
+        let mut f = std::fs::File::open(p)?;
+        let mut s = String::new();
+        f.read_to_string(&mut s)?;
+
+        let t = Handlebars::new().render_template(&s, &template.vars).map_err(super::map_err)?;
+
+        self.tplout.insert(template.output.to_string(), t);
 
         Ok(())
     }
@@ -325,6 +353,13 @@ config wireguard_{}
 
         let mut f = std::fs::File::create("/etc/config/network")?;
         f.write_all(&self.out_network)?;
+
+
+        for (path, s) in &self.tplout {
+            if let Err(err) = std::fs::File::create(path).and_then(|mut f|f.write_all(s.as_bytes())) {
+                log::warn!("{}: {}", path, err);
+            }
+        }
 
         Command::new("/etc/devguard/genesis/post")
             .spawn().ok();

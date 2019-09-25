@@ -43,6 +43,7 @@ pub struct WireguardPeer {
     pub public_key: String,
     pub endpoint:   String,
     pub autoroute:  Option<bool>,
+    pub psk:        Option<String>,
     pub keepalive:  Option<u32>,
     pub routes:     Vec<String>,
 }
@@ -86,7 +87,12 @@ pub struct Device {
     pub wifi:       Option<WifiDevice>,
 }
 
-
+#[derive(Deserialize, Debug)]
+pub struct Template {
+    pub template:   String,
+    pub output:     String,
+    pub vars:       toml::value::Value,
+}
 
 #[derive(Deserialize, Debug)]
 pub struct Genesis {
@@ -94,4 +100,6 @@ pub struct Genesis {
     pub interface:  HashMap<String, Interface>,
     #[serde(default)]
     pub device:     HashMap<String, Device>,
+    #[serde(default)]
+    pub template:   HashMap<String, Template>,
 }
