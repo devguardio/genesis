@@ -1,10 +1,10 @@
-use serde::{Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 
 //--- network
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub enum WifiMode{
     #[serde(rename="sta")]
     Sta,
@@ -14,7 +14,7 @@ pub enum WifiMode{
     Monitor,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub enum WifiAuth{
     #[serde(rename="psk2")]
     Psk2,
@@ -22,14 +22,14 @@ pub enum WifiAuth{
     None
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct WifiNetwork {
     pub ssid:   String,
     pub key:    Option<String>,
     pub auth:   Option<WifiAuth>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct WifiInterface {
     pub mode:       WifiMode,
     pub ssid:       Option<String>,
@@ -38,7 +38,7 @@ pub struct WifiInterface {
 }
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct WireguardPeer {
     pub public_key: String,
     pub endpoint:   String,
@@ -48,7 +48,7 @@ pub struct WireguardPeer {
     pub routes:     Vec<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct WireguardInterface {
     pub private_key: String,
     pub peers:       Option<Vec<WireguardPeer>>,
@@ -57,7 +57,7 @@ pub struct WireguardInterface {
 
 /// interface is something that has ip traffic.
 /// it can be attached to a physical device via device or created without one via class
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct Interface {
     pub device:     Option<String>,
     pub class:      Option<String>,
@@ -73,28 +73,28 @@ pub struct Interface {
 }
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct WifiDevice {
     pub channel:    Option<toml::value::Value>,
     pub htmode:     Option<String>,
 }
 
 /// a device is a physical thing that can have interfaces
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct Device {
     pub class:      String,
     pub path:       Option<String>,
     pub wifi:       Option<WifiDevice>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct Template {
     pub template:   String,
     pub output:     String,
     pub vars:       toml::value::Value,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct Genesis {
     #[serde(default)]
     pub interface:  HashMap<String, Interface>,
