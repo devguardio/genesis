@@ -8,7 +8,8 @@ use std::io::{Read};
 use carrier::osaka::{self, osaka};
 
 pub mod genesis;
-pub mod openwrt;
+
+pub mod systemd;
 
 fn map_err<E: std::error::Error> (e: E) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
@@ -107,7 +108,7 @@ fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier::endpoint::Strea
     let m = match carrier::proto::GenesisUpdate::decode(&m) {
         Err(e) => {
             stream.send(carrier::headers::Headers::with_error(400, format!("{:?}", e)).encode());
-            log::warn!("{:?}", e);
+            log::warn!("proto: {:?}", e);
             return;
         },
         Ok(v) => v,
@@ -121,13 +122,15 @@ fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier::endpoint::Strea
     let g : genesis::Genesis = match toml::de::from_slice(&m.data) {
         Err(e) => {
             stream.send(carrier::headers::Headers::with_error(400, format!("{:?}", e)).encode());
-            log::warn!("{:?}", e);
+            log::warn!("toml: {:?}", e);
             return;
         }
         Ok(v) => v,
     };
 
-    let mut em = openwrt::Emitter::new();
+    //let mut em = openwrt::Emitter::new();
+    let mut em = systemd::Emitter::new("/".into());
+
     match em.load(&g) {
         Err(e) => {
             stream.send(carrier::headers::Headers::with_error(400, format!("{:?}", e)).encode());
@@ -182,7 +185,7 @@ pub fn genesis() -> Result<(), std::io::Error> {
     f.read_to_end(&mut s)?;
 
     let g : genesis::Genesis = toml::de::from_slice(&s).map_err(map_err)?;
-    let mut em = openwrt::Emitter::new();
+    let mut em = systemd::Emitter::new("/".into());
     em.load(&g)?;
     em.commit()?;
 

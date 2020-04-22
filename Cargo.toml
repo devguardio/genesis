@@ -1,6 +1,6 @@
 [package]
 name = "devguard-genesis"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Arvid E. Picciani <aep@exys.org>"]
 edition = "2018"
 license     = "MIT"
@@ -12,8 +12,8 @@ repository  = "https://github.com/devguardio/genesis"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axon        = "0.2.0"
-carrier     = { version = "0.12.0"}
+axon        = "0.3.0"
+carrier     = { path = '/home/aep/proj/devguard/carrier_rs' }
 bytes       = "0.4"
 serde       = {version = "1", features = ['derive']}
 toml        = "0.5"
@@ -23,4 +23,3 @@ tinylogger  = "0.1"
 log         = "0.4"
 sha2        = "0.8"
 handlebars  = "2.0.2"
-

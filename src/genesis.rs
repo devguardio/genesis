@@ -62,14 +62,20 @@ pub struct Interface {
     pub device:     Option<String>,
     pub class:      Option<String>,
     // true, false, "yes", "no", "ipv4", "ipv6",
+    pub bridge:     Option<String>,
     pub dhcp:       Option<toml::value::Value>,
     pub ipaddr:     Option<Vec<String>>,
-    pub bridge:     Option<String>,
+    pub gateway:    Option<String>,
+    pub dns:        Option<Vec<String>>,
+    #[serde(default)]
+    pub sta:        Vec<WifiNetwork>,
+
+
+    // garbage that is unfortunately in use by customers
+    pub proto:      Option<String>,
 
     pub wireguard:  Option<WireguardInterface>,
     pub wifi:       Option<WifiInterface>,
-    #[serde(default)]
-    pub sta: Vec<WifiNetwork>,
 }
 
 
