@@ -1,0 +1,52 @@
+[interface.public]
+class   = 'bridge'
+ipaddr  = ['192.168.44.1/24']
+
+[interface.wan]
+class   = 'bridge'
+dhcp    = true
+
+[interface.eth0]
+device  = 'eth0'
+bridge  = 'wan'
+
+[interface.eth1]
+device  = 'eth1'
+bridge  = 'wan'
+
+[device.wifi0]
+class        = 'wifi'
+path         = '/sys/devices/platform/ahb/18100000.wmac'
+wifi.channel = '11'
+
+[device.wifi1]
+class        = 'wifi'
+path         = '/sys/devices/platform/ahb/1b000000.usb/ci_hdrc.0/usb1/1-1/1-1:1.0'
+wifi.channel = '11'
+
+[interface.publicap]
+class        = 'wifi'
+device       = 'wifi1'
+bridge       = 'public'
+wifi.mode    = 'ap'
+wifi.ssid    = 'HereBeSsid'
+
+[interface.monitor]
+class        = 'wifi'
+device       = 'wifi0'
+wifi.mode    = 'monitor'
+
+[interface.scan]
+class       = 'wifi'
+device      = 'wifi0'
+wifi.mode   = 'sta'
+
+
+[template.firewall]
+template = 'firewall.x.v0'
+output   = '/etc/config/firewall'
+vars     = []
+
+
+[captif]
+url = "http://captive/guest/s/carrier/?id={{client_mac_addr}}&ap={{identity}}"

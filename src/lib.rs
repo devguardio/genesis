@@ -3,13 +3,18 @@
 extern crate serde;
 extern crate toml;
 
+
 use std::fs::File;
 use std::io::{Read};
 use carrier::osaka::{self, osaka};
 
 pub mod genesis;
 
+#[cfg(feature = "systemd")]
 pub mod systemd;
+#[cfg(feature = "openwrt")]
+pub mod openwrt;
+
 
 fn map_err<E: std::error::Error> (e: E) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
@@ -128,8 +133,14 @@ fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier::endpoint::Strea
         Ok(v) => v,
     };
 
-    //let mut em = openwrt::Emitter::new();
+
+    #[cfg(feature = "openwrt")]
+    let mut em = openwrt::Emitter::new();
+    #[cfg(feature = "systemd")]
     let mut em = systemd::Emitter::new("/".into());
+    #[cfg(not(any(feature = "systemd", feature = "openwrt")))]
+    compile_error!("missing feature config: systemd or openwrt");
+
 
     match em.load(&g) {
         Err(e) => {
@@ -185,7 +196,15 @@ pub fn genesis() -> Result<(), std::io::Error> {
     f.read_to_end(&mut s)?;
 
     let g : genesis::Genesis = toml::de::from_slice(&s).map_err(map_err)?;
+
+    #[cfg(feature = "openwrt")]
+    let mut em = openwrt::Emitter::new();
+    #[cfg(feature = "systemd")]
     let mut em = systemd::Emitter::new("/".into());
+
+    #[cfg(not(any(feature = "systemd", feature = "openwrt")))]
+    compile_error!("missing feature config: systemd or openwrt");
+
     em.load(&g)?;
     em.commit()?;
 
