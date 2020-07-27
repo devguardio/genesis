@@ -47,13 +47,22 @@ config interface 'public'
 
 or on systemd generate a new file:
 
-/etc/systemd/network/wan.network
+/etc/systemd/network/public.netdev
+```
+[NetDev]
+Name=bridge
+Kind=bridge
+
+```
+
+and /etc/systemd/network/public.network
+
 ```
 [Match]
-Name=en*
+Name=public
 
 [Network]
-DHCP=ipv4
+Address=192.168.44.1/24
 ```
 
 
@@ -81,4 +90,15 @@ config interface 'wan'
   option ifname 'eth0 eth1'
 ```
 
+on systemd they are not accumulated.
+```
+/etc/systemd/network/eth0.network
+[Match]
+Name=eth0*
 
+[Network]
+Bridge=wan
+```
+
+
+see the manual of systemd and openwrt for more options
