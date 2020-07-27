@@ -436,13 +436,17 @@ func (e *emitter) loadTemplate(name string, tmpl Template) error {
 }
 
 func (e *emitter) commit() error {
-	file, err := os.Create("/etc/config/wireless")
+	err := os.MkdirAll("./etc/config", 0700)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create("./etc/config/wireless")
 	if err != nil {
 		return err
 	}
 	e.wireless.WriteTo(file)
 	file.Close()
-	file, err = os.Create("/etc/config/network")
+	file, err = os.Create("./etc/config/network")
 	if err != nil {
 		return err
 	}
@@ -456,7 +460,7 @@ func (e *emitter) commit() error {
 		file.WriteString(data)
 	}
 
-	return exec.Command("/etc/devguard/genesis/post").Run()
+	return exec.Command("./etc/devguard/genesis/post").Run()
 }
 
 func (wa wifiAuth) MarshalTextL() ([]byte, error) {

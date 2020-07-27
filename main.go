@@ -15,22 +15,27 @@ const genesisPath = "genesis"
 func main() {
 	args := os.Args[1:]
 	fmt.Println(args)
+	currentconfig := "current.toml"
 	if len(args) == 0 {
 		println("Need at least one argument \"settle\" or \"revert\"")
 	}
+	if len(args) == 2 {
+		currentconfig = args[1]
+	}
+
 	if args[0] == "settle" {
-		stabilize()
+		stabilize(currentconfig)
 	}
 	if args[0] == "revert" {
-		revert()
+		revert(currentconfig)
 	}
 	if args[0] == "apply" {
-		genesisCommit()
+		genesisCommit(currentconfig)
 	}
 }
 
-func genesisCommit() {
-	config, err := loadCurrentFile()
+func genesisCommit(current string) {
+	config, err := loadCurrentFile(current)
 	if err != nil {
 		fmt.Printf("Failed to load configuration file: %v\n", err)
 		return
@@ -52,26 +57,26 @@ func genesisCommit() {
 	}
 }
 
-func stabilize() {
+func stabilize(current string) {
 	println("genesis stabilized")
 
-	err := os.Rename(filepath.Join(genesisPath, "current.toml"), filepath.Join(genesisPath, "stable.toml"))
+	err := os.Rename(filepath.Join(genesisPath, current), filepath.Join(genesisPath, "stable.toml"))
 	if err != nil {
 		fmt.Printf("genesis: %v", err)
 	}
 }
 
-func revert() {
+func revert(current string) {
 	println("genesis reverting")
-	err := os.Remove(filepath.Join(genesisPath, "current.toml"))
+	err := os.Remove(filepath.Join(genesisPath, current))
 	if err != nil {
 		fmt.Printf("genesis: %v", err)
 	}
-	genesisCommit()
+	genesisCommit(current)
 }
 
-func loadCurrentFile() (Genesis, error) {
-	fpath := filepath.Join(genesisPath, "current.toml")
+func loadCurrentFile(current string) (Genesis, error) {
+	fpath := filepath.Join(genesisPath, current)
 	_, err := os.Stat(fpath)
 	if os.IsNotExist(err) {
 		fpath = filepath.Join(genesisPath, "stable.toml")
