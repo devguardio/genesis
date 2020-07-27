@@ -1,5 +1,7 @@
 this is the readme for a contract post.
 
+email arvid@devguard.io for contract details
+
 
 genesis is a configuration generator for IoT devices.
 it supports populating /etc/ from a single toml file.
