@@ -9,7 +9,7 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-const genesisPath = "genesis"
+const genesisPath = "etc/config/genesis"
 
 func main() {
 	args := os.Args[1:]

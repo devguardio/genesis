@@ -1,4 +1,4 @@
-// +build systemd, !openwrt
+// +build systemd
 
 package main
 
