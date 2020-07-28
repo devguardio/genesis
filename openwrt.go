@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -91,14 +92,14 @@ config interface   'loopback'
 				return err
 			}
 		} else if v.ipAddres != nil {
-			_, err = fmt.Fprintf(e.network, `    option proto   'static'
+			netmask := net.IP(v.ipAddres.Mask)
+			_, err = fmt.Fprintf(e.network, `	option proto   'static'
 	option ipaddr  '%s'
 	option netmask '%s
-`, v.ipAddres.IP, v.ipAddres.Mask)
+`, v.ipAddres.IP, netmask)
 			if err != nil {
 				return err
 			}
-
 		}
 		_, err = fmt.Fprintln(e.network, "")
 		if err != nil {
