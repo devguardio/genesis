@@ -138,7 +138,6 @@ func (e *emitter) loadDeviceInterface(name string, devIntf devInterface) error {
 		intf.typ = "bridge"
 		e.interfaces[name] = intf
 	case "wifi":
-		fmt.Println("wifi:" + name)
 		return e.createWifi(name, devIntf)
 	case "wireguard":
 		return e.createWireguard(name, devIntf)
@@ -184,8 +183,6 @@ func (e *emitter) createDeviceInterface(name string, devIntf devInterface) error
 }
 
 func (e *emitter) createWifi(name string, devIntf devInterface) error {
-	fmt.Println(e.devices)
-	fmt.Println(devIntf.Device)
 	if devIntf.Device == "" {
 		return fmt.Errorf("wifi interface missing device '%s'", name)
 	}
@@ -324,7 +321,6 @@ config wireguard_%s
 }
 
 func (e *emitter) loadDevice(name string, dev device) error {
-	fmt.Println(name)
 	e.devices[name] = struct{}{}
 	switch dev.Class {
 	case "wifi":
