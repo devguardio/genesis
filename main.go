@@ -68,7 +68,7 @@ func revert(current string) {
 	genesisCommit(current)
 }
 
-func loadCurrentFile(current string) (Genesis, error) {
+func loadCurrentFile(current string) (genesis, error) {
 	fpath := filepath.Join(genesisPath, current)
 	_, err := os.Stat(fpath)
 	if os.IsNotExist(err) {
@@ -77,16 +77,16 @@ func loadCurrentFile(current string) (Genesis, error) {
 
 	config, err := ioutil.ReadFile(fpath)
 	if err != nil {
-		return Genesis{}, err
+		return genesis{}, err
 	}
-	gen := Genesis{
-		Interfaces: make(map[string]DevInterface),
-		Devices:    make(map[string]Device),
-		Templates:  make(map[string]Template),
+	gen := genesis{
+		Interfaces: make(map[string]devInterface),
+		Devices:    make(map[string]device),
+		Templates:  make(map[string]template),
 	}
 	err = toml.Unmarshal(config, &gen)
 	if err != nil {
-		return Genesis{}, err
+		return genesis{}, err
 	}
 	return gen, nil
 }

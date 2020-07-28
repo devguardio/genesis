@@ -20,7 +20,7 @@ func newEmitter() emitter {
 	}
 }
 
-func (se emitter) load(config Genesis) error {
+func (se emitter) load(config genesis) error {
 	for name, devIntf := range config.Interfaces {
 		se.loadDeviceInterface(name, devIntf)
 	}
@@ -31,7 +31,7 @@ func (se emitter) commit() error {
 	return nil
 }
 
-func (se emitter) loadDeviceInterface(name string, devIntf DevInterface) error {
+func (se emitter) loadDeviceInterface(name string, devIntf devInterface) error {
 	path := filepath.Join(se.prefix, "etc/systemd/network/")
 	err := os.MkdirAll(path, 0700)
 	if err != nil {

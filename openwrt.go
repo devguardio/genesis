@@ -41,9 +41,9 @@ func newEmitter() emitter {
 	}
 }
 
-func (e *emitter) load(config Genesis) error {
-	for name, device := range config.Devices {
-		e.loadDevice(name, device)
+func (e *emitter) load(config genesis) error {
+	for name, dev := range config.Devices {
+		e.loadDevice(name, dev)
 	}
 	for name, devIntf := range config.Interfaces {
 		e.loadDeviceInterface(name, devIntf)
@@ -106,7 +106,7 @@ config interface   'loopback'
 	return nil
 }
 
-func (e *emitter) loadDeviceInterface(name string, devIntf DevInterface) error {
+func (e *emitter) loadDeviceInterface(name string, devIntf devInterface) error {
 	for _, r := range name {
 		if !unicode.IsLetter(r) && (48 > r || r > 58) {
 			return fmt.Errorf("invalid interface name %s", name)
@@ -134,7 +134,7 @@ func (e *emitter) loadDeviceInterface(name string, devIntf DevInterface) error {
 	return nil
 }
 
-func (e *emitter) createDeviceInterface(name string, devIntf DevInterface) error {
+func (e *emitter) createDeviceInterface(name string, devIntf devInterface) error {
 	if devIntf.Bridge != "" && devIntf.Device != "" {
 		intf := e.interfaces[devIntf.Bridge]
 		intf.ifname = append(intf.ifname, devIntf.Device)
@@ -148,7 +148,7 @@ func (e *emitter) createDeviceInterface(name string, devIntf DevInterface) error
 	}
 
 	if len(devIntf.IPAddres) != 0 {
-		addr, err := IPFromBytes([]byte(devIntf.IPAddres[0]))
+		addr, err := ipFromBytes([]byte(devIntf.IPAddres[0]))
 		if err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func (e *emitter) createDeviceInterface(name string, devIntf DevInterface) error
 	return nil
 }
 
-func (e *emitter) createWifi(name string, devIntf DevInterface) error {
+func (e *emitter) createWifi(name string, devIntf devInterface) error {
 	if devIntf.Device == "" {
 		return fmt.Errorf("wifi interface missing device '%s'", name)
 	}
@@ -229,7 +229,7 @@ config wifi-iface   '%s'
 	return nil
 }
 
-func (e *emitter) createWireguard(name string, devIntf DevInterface) error {
+func (e *emitter) createWireguard(name string, devIntf devInterface) error {
 	if devIntf.Wireguard.PrivateKey == "" {
 		return fmt.Errorf("missing [interface.%s.wireguard] section", name)
 	}
@@ -308,7 +308,7 @@ config wireguard_%s
 	return nil
 }
 
-func (e *emitter) loadDevice(name string, dev Device) error {
+func (e *emitter) loadDevice(name string, dev device) error {
 	e.devices[name] = struct{}{}
 	switch dev.Class {
 	case "wifi":
@@ -362,7 +362,7 @@ config wifi-device '%s'
 	return nil
 }
 
-func (e *emitter) loadTemplate(name string, tmpl Template) error {
+func (e *emitter) loadTemplate(name string, tmpl template) error {
 	handlebar, err := raymond.ParseFile(filepath.Join("./etc/devguard/genesis/templates/", tmpl.Template))
 	if err != nil {
 		return err

@@ -42,7 +42,7 @@ type (
 		Peers      []wireguardPeer `toml:"peers"`
 	}
 
-	DevInterface struct {
+	devInterface struct {
 		Device string `toml:"device"`
 		Class  string `toml:"class"`
 		// true, false, "yes", "no", "ipv4", "ipv6",
@@ -58,22 +58,22 @@ type (
 		Wifi      wifiInterface      `toml:"wifi"`
 	}
 
-	Device struct {
+	device struct {
 		Class string      `toml:"class"`
 		Path  string      `toml:"path"`
 		Wifi  *wifiDevice `toml:"wifi"`
 	}
 
-	Template struct {
+	template struct {
 		Template  string      `toml:"template"`
 		Output    string      `toml:"output"`
 		Variables interface{} `toml:"vars"`
 	}
 
-	Genesis struct {
-		Interfaces map[string]DevInterface `toml:"interface"`
-		Devices    map[string]Device       `toml:"device"`
-		Templates  map[string]Template     `toml:"template"`
+	genesis struct {
+		Interfaces map[string]devInterface `toml:"interface"`
+		Devices    map[string]device       `toml:"device"`
+		Templates  map[string]template     `toml:"template"`
 	}
 )
 
@@ -144,7 +144,7 @@ func (i ip) MarshalText() ([]byte, error) {
 }
 
 func (i *ip) UnmarshalText(data []byte) error {
-	addr, err := IPFromBytes(data)
+	addr, err := ipFromBytes(data)
 	if err != nil {
 		return err
 
@@ -153,7 +153,7 @@ func (i *ip) UnmarshalText(data []byte) error {
 	return nil
 }
 
-func IPFromBytes(data []byte) (*ip, error) {
+func ipFromBytes(data []byte) (*ip, error) {
 	IP, addr, err := net.ParseCIDR(string(data))
 	if err != nil {
 		return nil, err
