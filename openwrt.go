@@ -73,21 +73,21 @@ config interface   'loopback'
 			return err
 		}
 		if v.typ != "" {
-			_, err = fmt.Fprintf(e.network, "    option type    '%s'\n", v.typ)
+			_, err = fmt.Fprintf(e.network, "	option type    '%s'\n", v.typ)
 			if err != nil {
 				return err
 			}
 		}
 
 		if len(v.ifname) != 0 {
-			_, err = fmt.Fprintf(e.network, "    option ifname  '%s'\n", strings.Join(v.ifname, " "))
+			_, err = fmt.Fprintf(e.network, "	option ifname  '%s'\n", strings.Join(v.ifname, " "))
 			if err != nil {
 				return err
 			}
 		}
 
 		if v.dhcp {
-			_, err = fmt.Fprintf(e.network, "    option proto   'dhcp'\n")
+			_, err = fmt.Fprintf(e.network, "	option proto   'dhcp'\n")
 			if err != nil {
 				return err
 			}
@@ -95,7 +95,7 @@ config interface   'loopback'
 			netmask := net.IP(v.ipAddres.Mask)
 			_, err = fmt.Fprintf(e.network, `	option proto   'static'
 	option ipaddr  '%s'
-	option netmask '%s
+	option netmask '%s'
 `, v.ipAddres.IP, netmask)
 			if err != nil {
 				return err
@@ -198,22 +198,22 @@ config wifi-iface   '%s'
 	}
 
 	if devIntf.Bridge != "" {
-		_, err = fmt.Fprintf(e.wireless, "    option network  '%s'\n", devIntf.Bridge)
+		_, err = fmt.Fprintf(e.wireless, "	option network  '%s'\n", devIntf.Bridge)
 		if err != nil {
 			return err
 		}
 	}
 	if devIntf.Wifi.Ssid != "" {
-		_, err = fmt.Fprintf(e.wireless, "    option ssid     '%s'\n", devIntf.Bridge)
+		_, err = fmt.Fprintf(e.wireless, "	option ssid     '%s'\n", devIntf.Bridge)
 		if err != nil {
 			return err
 		}
 
 		switch devIntf.Wifi.Auth {
 		case psk2:
-			_, err = fmt.Fprint(e.wireless, "    option encryption 'psk2' \n")
+			_, err = fmt.Fprint(e.wireless, "	option encryption 'psk2' \n")
 		case none:
-			_, err = fmt.Fprint(e.wireless, "    option encryption 'none' \n")
+			_, err = fmt.Fprint(e.wireless, "	option encryption 'none' \n")
 		}
 		if err != nil {
 			return err
@@ -221,7 +221,7 @@ config wifi-iface   '%s'
 
 	}
 	if devIntf.Wifi.Key != "" {
-		_, err = fmt.Fprintf(e.wireless, "    option key       '%s'\n", devIntf.Wifi.Key)
+		_, err = fmt.Fprintf(e.wireless, "	option key       '%s'\n", devIntf.Wifi.Key)
 		if err != nil {
 			return err
 		}
@@ -245,7 +245,7 @@ config interface '%s'
 	}
 
 	for _, addr := range devIntf.IPAddres {
-		_, err = fmt.Fprintf(e.network, "    list addresses '%v'\n", addr)
+		_, err = fmt.Fprintf(e.network, "	list addresses '%v'\n", addr)
 		if err != nil {
 			return err
 		}
@@ -270,7 +270,7 @@ config wireguard_%s
 	}
 
 	if peer.Psk != "" {
-		_, err = fmt.Fprintf(e.network, "    option preshared_key '%v'\n", peer.Psk)
+		_, err = fmt.Fprintf(e.network, "	option preshared_key '%v'\n", peer.Psk)
 		if err != nil {
 			return err
 		}
@@ -285,7 +285,7 @@ config wireguard_%s
 		return fmt.Errorf("invalid wg endpoint port: %s: %s", endpoints[1], err)
 	}
 
-	_, err = fmt.Fprintf(e.network, `    option endpoint_port '%d'
+	_, err = fmt.Fprintf(e.network, `	option endpoint_port '%d'
 	option endpoint_host
 '%s'`, endpointPort, endpoints[0])
 	if err != nil {
@@ -293,14 +293,14 @@ config wireguard_%s
 	}
 
 	if peer.Keepalive != nil {
-		_, err = fmt.Fprintf(e.network, "    option persistent_keepalive '%d'\n", *peer.Keepalive)
+		_, err = fmt.Fprintf(e.network, "	option persistent_keepalive '%d'\n", *peer.Keepalive)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, route := range peer.Routes {
-		_, err = fmt.Fprintf(e.network, "    list allowed_ips '%s'\n", route)
+		_, err = fmt.Fprintf(e.network, "	list allowed_ips '%s'\n", route)
 		if err != nil {
 			return err
 		}
@@ -344,14 +344,14 @@ config wifi-device '%s'
 		_, ok1 := dev.Wifi.Channel.(int)
 		_, ok2 := dev.Wifi.Channel.(string)
 		if ok1 || ok2 {
-			_, err = fmt.Fprintf(e.wireless, "    option channel  '%v'\n", dev.Wifi.Channel)
+			_, err = fmt.Fprintf(e.wireless, "	option channel  '%v'\n", dev.Wifi.Channel)
 			if err != nil {
 				return err
 			}
 		}
 
 		if dev.Wifi.Htmode != "" {
-			_, err = fmt.Fprintf(e.wireless, "    option htmode  '%v'\n", dev.Wifi.Htmode)
+			_, err = fmt.Fprintf(e.wireless, "	option htmode  '%v'\n", dev.Wifi.Htmode)
 			if err != nil {
 				return err
 			}
