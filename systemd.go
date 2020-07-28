@@ -16,13 +16,16 @@ type emitter struct {
 
 func newEmitter() emitter {
 	return emitter{
-		prefix: "/",
+		prefix: "./",
 	}
 }
 
 func (se emitter) load(config genesis) error {
 	for name, devIntf := range config.Interfaces {
-		se.loadDeviceInterface(name, devIntf)
+		err := se.loadDeviceInterface(name, devIntf)
+		if err != nil {
+			return err
+		}
 	}
 	return exec.Command("systemctl", "restart", "systemd-networkd").Run()
 }

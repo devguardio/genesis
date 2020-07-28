@@ -14,7 +14,7 @@ const genesisPath = "genesis"
 func main() {
 	args := os.Args[1:]
 	fmt.Println(args)
-	currentconfig := "current.toml"
+	currentconfig := filepath.Join(genesisPath, "current.toml")
 	if len(args) == 0 {
 		println("Need at least one argument \"settle\" or \"revert\"")
 	}
@@ -53,7 +53,7 @@ func genesisCommit(current string) {
 func stabilize(current string) {
 	println("genesis stabilized")
 
-	err := os.Rename(filepath.Join(genesisPath, current), filepath.Join(genesisPath, "stable.toml"))
+	err := os.Rename(current, filepath.Join(genesisPath, "stable.toml"))
 	if err != nil {
 		fmt.Printf("genesis: %v", err)
 	}
@@ -61,7 +61,7 @@ func stabilize(current string) {
 
 func revert(current string) {
 	println("genesis reverting")
-	err := os.Remove(filepath.Join(genesisPath, current))
+	err := os.Remove(current)
 	if err != nil {
 		fmt.Printf("genesis: %v", err)
 	}
@@ -69,7 +69,7 @@ func revert(current string) {
 }
 
 func loadCurrentFile(current string) (genesis, error) {
-	fpath := filepath.Join(genesisPath, current)
+	fpath := current
 	_, err := os.Stat(fpath)
 	if os.IsNotExist(err) {
 		fpath = filepath.Join(genesisPath, "stable.toml")
