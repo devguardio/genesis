@@ -204,7 +204,7 @@ config wifi-iface   '%s'
 		}
 	}
 	if devIntf.Wifi.Ssid != "" {
-		_, err = fmt.Fprintf(e.wireless, "	option ssid     '%s'\n", devIntf.Bridge)
+		_, err = fmt.Fprintf(e.wireless, "	option ssid     '%s'\n", devIntf.Wifi.Ssid)
 		if err != nil {
 			return err
 		}
