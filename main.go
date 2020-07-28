@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -40,13 +39,7 @@ func genesisCommit(current string) {
 		fmt.Printf("Failed to load configuration file: %v\n", err)
 		return
 	}
-	em := emitter{
-		devices:    make(map[string]struct{}, 0),
-		interfaces: make(map[string]netInterface, 0),
-		wireless:   &bytes.Buffer{},
-		network:    &bytes.Buffer{},
-		tplout:     make(map[string]string, 0),
-	}
+	em := newEmitter()
 	err = em.load(config)
 	if err != nil {
 		fmt.Printf("Failed to load configuration file: %v\n", err)
