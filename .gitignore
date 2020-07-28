@@ -1,2 +1,2 @@
-genesis
-etc/*
+./genesis
+etc/config/*
