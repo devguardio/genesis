@@ -157,12 +157,10 @@ func (e *emitter) createDeviceInterface(name string, devIntf devInterface) error
 		intf.ipAddres = addr
 	}
 
-	//defaults to true. ""
-	intf.dhcp = true
 	switch dhcp := devIntf.Dhcp.(type) {
 	case string:
 		switch dhcp {
-		case "false", "no":
+		case "yes", "true", "ipv4":
 			intf.dhcp = false
 		}
 	case bool:
@@ -318,7 +316,7 @@ func (e *emitter) loadDevice(name string, dev device) error {
 			return fmt.Errorf("wifi device must be matched by path %s", name)
 		}
 		path := dev.Path
-		if !strings.HasPrefix(dev.Path, "/sys/device") {
+		if !strings.HasPrefix(dev.Path, "/sys/devices/") {
 			path, _ = filepath.EvalSymlinks(filepath.Join(dev.Path, "device"))
 			//if the error != nil, path will be empty and thus will fail the next check.
 		}
