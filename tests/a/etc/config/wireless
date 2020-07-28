@@ -1,0 +1,10 @@
+
+config wifi-device 'wifi1'
+	option type     'mac80211'
+	option path     'platform/ahb/1b000000.usb/ci_hdrc.0/usb1/1-1/1-1:1.0'
+    option channel  '11'
+
+config wifi-device 'wifi0'
+	option type     'mac80211'
+	option path     'platform/ahb/18100000.wmac'
+    option channel  '11'
