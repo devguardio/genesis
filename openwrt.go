@@ -15,6 +15,8 @@ import (
 	"github.com/aymerick/raymond"
 )
 
+const backend = "openwrt"
+
 type (
 	netInterface struct {
 		ifname   []string

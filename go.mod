@@ -1,4 +1,4 @@
-module main
+module genesis
 
 go 1.14
 

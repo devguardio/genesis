@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 )
 
+const backend = "systemd"
+
 type emitter struct {
 	prefix string
 }
@@ -42,6 +44,7 @@ func (se emitter) loadDeviceInterface(name string, devIntf devInterface) error {
 	}
 	path = filepath.Join(path, fmt.Sprintf("20-genesis-%s.network", name))
 	file, err := os.Create(path)
+	defer file.Close()
 	if err != nil {
 		return err
 	}
@@ -85,7 +88,7 @@ RouteMetric=10
 		}
 
 	} else {
-		_, err = fmt.Fprintf(file, "[Network]\n", devIntf.Device)
+		_, err = fmt.Fprintf(file, "[Network]\n")
 		if err != nil {
 			return err
 		}
@@ -112,18 +115,18 @@ RouteMetric=10
 			}
 		}
 	}
-	file.Close()
 	switch devIntf.Wifi.Mode {
 	case sta:
 		path := filepath.Join(se.prefix, "etc/systemd/network/")
 		os.RemoveAll(path)
 		os.MkdirAll(path, 0700)
 		path = filepath.Join(path, fmt.Sprintf("wpa_supplicant-%s.conf", devIntf.Device))
-		file, err = os.Create(path)
+		file2, err := os.Create(path)
+		defer file2.Close()
 		if err != nil {
 			return err
 		}
-		_, err = fmt.Fprintf(file, `
+		_, err = fmt.Fprintf(file2, `
 ctrl_interface=/var/run/wpa_supplicant
 ap_scan=1
 `)
@@ -132,7 +135,7 @@ ap_scan=1
 		}
 		for _, sta := range devIntf.STA {
 			if sta.Auth == psk2 && sta.Key != "" {
-				_, err = fmt.Fprintf(file, `
+				_, err = fmt.Fprintf(file2, `
 network={{
 	key_mgmt=WPA-PSK
 	ssid="%s"
@@ -143,7 +146,7 @@ network={{
 					return err
 				}
 			} else {
-				_, err = fmt.Fprintf(file, `
+				_, err = fmt.Fprintf(file2, `
 network={{
 	ssid="%s"
 	key_mgmt=NONE
@@ -154,7 +157,6 @@ network={{
 				}
 			}
 		}
-		file.Close()
 		err = exec.Command("systemctl", "start", fmt.Sprintf("wpa_supplicant@%s.service", devIntf.Device)).Run()
 		if err != nil {
 			return err
