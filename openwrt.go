@@ -46,13 +46,23 @@ func newEmitter() emitter {
 
 func (e *emitter) load(config genesis) error {
 	for name, dev := range config.Devices {
-		e.loadDevice(name, dev)
+		err := e.loadDevice(name, dev)
+		if err != nil {
+			return err
+		}
 	}
 	for name, devIntf := range config.Interfaces {
-		e.loadDeviceInterface(name, devIntf)
+		err := e.loadDeviceInterface(name, devIntf)
+		if err != nil {
+			return err
+		}
 	}
 	for name, tmpl := range config.Templates {
-		e.loadTemplate(name, tmpl)
+		err := e.loadTemplate(name, tmpl)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	_, err := fmt.Fprintf(e.network, `
@@ -118,6 +128,7 @@ func (e *emitter) loadDeviceInterface(name string, devIntf devInterface) error {
 	if name == "" {
 		panic(devIntf)
 	}
+
 	switch devIntf.Class {
 	case "":
 		e.createDeviceInterface(name, devIntf)
@@ -127,6 +138,7 @@ func (e *emitter) loadDeviceInterface(name string, devIntf devInterface) error {
 		intf.typ = "bridge"
 		e.interfaces[name] = intf
 	case "wifi":
+		fmt.Println("wifi:" + name)
 		return e.createWifi(name, devIntf)
 	case "wireguard":
 		return e.createWireguard(name, devIntf)
@@ -172,11 +184,13 @@ func (e *emitter) createDeviceInterface(name string, devIntf devInterface) error
 }
 
 func (e *emitter) createWifi(name string, devIntf devInterface) error {
+	fmt.Println(e.devices)
+	fmt.Println(devIntf.Device)
 	if devIntf.Device == "" {
 		return fmt.Errorf("wifi interface missing device '%s'", name)
 	}
-	if _, ok := e.devices[devIntf.Device]; ok {
-		return fmt.Errorf("undeclared interface '%s' used in device '%s'", devIntf.Device, name)
+	if _, ok := e.devices[devIntf.Device]; !ok {
+		return fmt.Errorf("undeclared device '%s' used in interface '%s'", devIntf.Device, name)
 	}
 	var mode string
 	switch devIntf.Wifi.Mode {
@@ -310,6 +324,7 @@ config wireguard_%s
 }
 
 func (e *emitter) loadDevice(name string, dev device) error {
+	fmt.Println(name)
 	e.devices[name] = struct{}{}
 	switch dev.Class {
 	case "wifi":
