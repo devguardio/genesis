@@ -9,11 +9,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
+	textTemplate "text/template"
 	"unicode"
-
-	"github.com/aymerick/raymond"
 )
 
 const backend = "openwrt"
@@ -379,15 +379,21 @@ config wifi-device '%s'
 }
 
 func (e *emitter) loadTemplate(name string, tmpl template) error {
-	handlebar, err := raymond.ParseFile(filepath.Join("./etc/devguard/genesis/templates/", tmpl.Template))
+	//hack for not erroring when vars is toml array
+	if reflect.TypeOf(tmpl.Variables).Kind() == reflect.Slice {
+		tmpl.Variables = map[interface{}]interface{}{}
+	}
+
+	buf := &bytes.Buffer{}
+	tmplf, err := textTemplate.ParseFiles(filepath.Join("./etc/devguard/genesis/templates/", tmpl.Template))
 	if err != nil {
 		return err
 	}
-	res, err := handlebar.Exec(tmpl.Variables)
+	err = tmplf.Execute(buf, tmpl.Variables)
 	if err != nil {
 		return err
 	}
-	e.tplout[tmpl.Output] = res
+	e.tplout[tmpl.Output] = buf.String()
 	return nil
 }
 
@@ -409,7 +415,7 @@ func (e *emitter) commit() error {
 	e.network.WriteTo(file)
 	file.Close()
 	for path, data := range e.tplout {
-		file, err = os.Create(path)
+		file, err = os.Create("./" + path)
 		if err != nil {
 			return err
 		}
