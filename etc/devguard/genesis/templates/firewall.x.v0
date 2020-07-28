@@ -1,0 +1,103 @@
+config defaults
+        option syn_flood        1
+        option input            ACCEPT
+        option output           ACCEPT
+        option forward          REJECT
+        option disable_ipv6     0
+config zone
+        option name             tunnel
+        list   network          'tunnel'
+        option input            ACCEPT
+        option output           ACCEPT
+        option forward          ACCEPT
+        option masq             1
+        option family           ipv4
+config zone
+        option name             tunnel
+        list   network          'tunnel'
+        option input            DROP
+        option output           DROP
+        option forward          DROP
+        option family           ipv6
+config zone
+        option name             public
+        list network            'public'
+        option input            REJECT
+        option output           ACCEPT
+        option forward          REJECT
+        option family           ipv4
+config zone
+        option name             public
+        list network            'public'
+        option input            DROP
+        option output           DROP
+        option forward          DROP
+        option family           ipv6
+config zone
+        option name             wan
+        list   network          'wan'
+        list   network          'wan6'
+        option input            REJECT
+        option output           ACCEPT
+        option forward          REJECT
+        option masq             1
+        option mtu_fix          1
+        option family           ipv4
+{{if .tunnel}}
+config forwarding
+    option  src         'public'
+    option  dest        'tunnel'
+{{else}}
+config forwarding
+    option  src         'public'
+    option  dest        'wan'
+{{end}}
+# We need to accept udp packets on port 68,
+# see https://dev.openwrt.org/ticket/4108
+config rule
+        option name             Allow-DHCP-Renew
+        option src              wan
+        option proto            udp
+        option dest_port        68
+        option target           ACCEPT
+        option family           ipv4
+# Allow IPv4 ping
+config rule
+        option name             Allow-Ping
+        option src              wan
+        option proto            icmp
+        option icmp_type        echo-request
+        option family           ipv4
+        option target           ACCEPT
+#public wifi rules
+config rule
+        option name             Public-Allow-DHCP
+        option src              public
+        option proto            udp
+        option dest_port        67
+        option target           ACCEPT
+        option family           ipv4
+config rule
+        option name             Public-Allow-DNS
+        option src              public
+        option proto            udp
+        option dest_port        53
+        option target           ACCEPT
+        option family           ipv4
+config redirect
+        option name             Sentry
+        option src              public
+        option src_dport        80
+        option dest             public
+        option dest_ip          192.168.44.1
+        option dest_port        8444
+        option target           DNAT
+        option proto            tcp
+        option family           ipv4
+config rule
+        option name             Public-No-Email
+        option src              public
+        option dest_port        25
+        option proto            tcp
+        option target           REJECT
+        option family           ipv4
