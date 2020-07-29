@@ -394,6 +394,7 @@ func (e *emitter) loadTemplate(name string, tmpl template) error {
 }
 
 func (e *emitter) commit() error {
+
 	err := os.MkdirAll("./etc/config", 0700)
 	if err != nil {
 		return err
@@ -410,13 +411,28 @@ func (e *emitter) commit() error {
 	}
 	e.network.WriteTo(file)
 	file.Close()
+	files := make([]string, 0, len(e.tplout)+2)
+
 	for path, data := range e.tplout {
 		file, err = os.Create("./" + path)
 		if err != nil {
 			return err
 		}
 		file.WriteString(data)
+		files = append(files, filepath.Clean("./"+path))
+	}
+	files = append(files, "etc/config/network")
+	files = append(files, "etc/config/wireless")
+
+	err = compress("etc/config", files...)
+	if err != nil {
+		fmt.Printf("Failed to compress: %v\n", err)
 	}
 
-	return exec.Command("./etc/devguard/genesis/post").Run()
+	err = exec.Command("./etc/devguard/genesis/post").Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

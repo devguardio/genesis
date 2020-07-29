@@ -1,10 +1,14 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pelletier/go-toml"
 )
@@ -13,7 +17,6 @@ const genesisPath = "etc/config/genesis"
 
 func main() {
 	args := os.Args[1:]
-	fmt.Println(args)
 	currentconfig := filepath.Join(genesisPath, "current.toml")
 	if len(args) == 0 {
 		println("Need at least one argument \"settle\" or \"revert\"")
@@ -89,4 +92,65 @@ func loadCurrentFile(current string) (genesis, error) {
 		return genesis{}, err
 	}
 	return gen, nil
+}
+
+func compress(src string, files ...string) error {
+	outputFileName := filepath.Base(src)
+	out, err := os.Create(outputFileName + ".tar.gz")
+	if err != nil {
+		return err
+	}
+	zr := gzip.NewWriter(out)
+	tw := tar.NewWriter(zr)
+
+	filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
+		fmt.Println(file)
+		fmt.Println(files)
+		if !containsPrefix(files, filepath.Clean(file)) {
+			if fi.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		header, err := tar.FileInfoHeader(fi, file)
+		if err != nil {
+			return err
+		}
+
+		//https://golang.org/src/archive/tar/common.go?#L626
+		header.Name = filepath.ToSlash(file)
+
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+		//skip dirs
+		if !fi.IsDir() {
+			data, err := os.Open(file)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(tw, data); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	err = tw.Close()
+	if err != nil {
+		return err
+	}
+	err = zr.Close()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func containsPrefix(s []string, p string) bool {
+	for _, str := range s {
+		if strings.HasPrefix(str, p) {
+			return true
+		}
+	}
+	return false
 }

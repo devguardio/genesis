@@ -14,6 +14,7 @@ const backend = "systemd"
 
 type emitter struct {
 	prefix string
+	files  []string
 }
 
 func newEmitter() emitter {
@@ -29,6 +30,11 @@ func (se emitter) load(config genesis) error {
 			return err
 		}
 	}
+	err := compress("etc/config", se.files...)
+	if err != nil {
+		fmt.Printf("Failed to compress: %v\n", err)
+	}
+
 	return exec.Command("systemctl", "restart", "systemd-networkd").Run()
 }
 
@@ -44,6 +50,7 @@ func (se emitter) loadDeviceInterface(name string, devIntf devInterface) error {
 	}
 	path = filepath.Join(path, fmt.Sprintf("20-genesis-%s.network", name))
 	file, err := os.Create(path)
+	se.files = append(se.files, path)
 	defer file.Close()
 	if err != nil {
 		return err
@@ -122,6 +129,7 @@ RouteMetric=10
 		os.MkdirAll(path, 0700)
 		path = filepath.Join(path, fmt.Sprintf("wpa_supplicant-%s.conf", devIntf.Device))
 		file2, err := os.Create(path)
+		se.files = append(se.files, path)
 		defer file2.Close()
 		if err != nil {
 			return err
