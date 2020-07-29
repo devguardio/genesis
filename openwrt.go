@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -426,13 +425,7 @@ func (e *emitter) commit() error {
 
 	err = compress("etc/config", files...)
 	if err != nil {
-		fmt.Printf("Failed to compress: %v\n", err)
-	}
-
-	err = exec.Command("./etc/devguard/genesis/post").Run()
-	if err != nil {
 		return err
 	}
-
 	return nil
 }

@@ -104,8 +104,6 @@ func compress(src string, files ...string) error {
 	tw := tar.NewWriter(zr)
 
 	filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
-		fmt.Println(file)
-		fmt.Println(files)
 		if !containsPrefix(files, filepath.Clean(file)) {
 			if fi.IsDir() {
 				return filepath.SkipDir
@@ -135,6 +133,30 @@ func compress(src string, files ...string) error {
 		}
 		return nil
 	})
+	if backend == "openwrt" {
+		file, err := os.Open("etc/devguard/genesis/post")
+		if err != nil {
+			return err
+		}
+		fi, err := file.Stat()
+		if err != nil {
+			return err
+		}
+
+		header, err := tar.FileInfoHeader(fi, "uci.defaults")
+		if err != nil {
+			return err
+		}
+		header.Name = filepath.ToSlash("uci.defaults")
+
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if _, err := io.Copy(tw, file); err != nil {
+			return err
+		}
+	}
 	err = tw.Close()
 	if err != nil {
 		return err

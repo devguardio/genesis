@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 )
 
@@ -32,10 +31,10 @@ func (se emitter) load(config genesis) error {
 	}
 	err := compress("etc/config", se.files...)
 	if err != nil {
-		fmt.Printf("Failed to compress: %v\n", err)
+		return err
 	}
 
-	return exec.Command("systemctl", "restart", "systemd-networkd").Run()
+	return nil
 }
 
 func (se emitter) commit() error {
@@ -164,10 +163,6 @@ network={{
 					return err
 				}
 			}
-		}
-		err = exec.Command("systemctl", "start", fmt.Sprintf("wpa_supplicant@%s.service", devIntf.Device)).Run()
-		if err != nil {
-			return err
 		}
 	case ap, monitor:
 		return errors.New("wifi mode not supported")
