@@ -1,0 +1,236 @@
+using ast;
+using map;
+using err;
+using buffer;
+using log;
+using slice;
+using vec;
+using pool;
+
+using <string.h>::{strncmp, strlen};
+using <stdlib.h>::{atoi, system};
+using <stdio.h>::{FILE, fopen, fclose, fprintf}
+
+pub fn emit(ast::Genesis *gst)
+{
+    new+10000 pl = pool::make(64);
+    new[map::key=char, +0] bridge2members = map::make_with_pool(&pl);
+
+    // first make all bridges
+    for(let mut it = gst->ast.interfaces.keys(); map::next(&it);) {
+
+        let iff = (ast::Interface*)gst->ast.interfaces.get((char*)it.key.mem, it.key.size);
+        err::assert_safe(iff);
+        static_attest(slice::integrity(&iff->bridge));
+        static_attest(slice::integrity(&iff->device));
+
+        new+500 ifname = buffer::make();
+
+        switch iff->class {
+            ast::InterfaceClass::wifi , ast::InterfaceClass::bridge => {}
+            default => {
+                if iff->bridge.mem != 0 && iff->device.mem != 0 {
+
+                    let mut members = (vec::Vec mut *)bridge2members.get(iff->bridge.mem, iff->bridge.size);
+                    if members == 0 {
+                        new+0 members2 = vec::make_with_pool(&pl);
+                        bridge2members.insert(
+                            (char*)iff->bridge.mem,
+                            &members2,
+                            iff->bridge.size
+                        );
+                        members = (vec::Vec mut *)bridge2members.get(iff->bridge.mem, iff->bridge.size);
+
+                    }
+                    err::assert_safe(members);
+                    static_attest(vec::integrity(members));
+                    err::assert(members->put(iff->device.mem, iff->device.size));
+
+                }
+            }
+        }
+    }
+
+
+    // emit /etc/config/network
+
+    FILE mut * mut fo = fopen("/etc/config/network", "w");
+    err::assert_safe(fo);
+    fprintf(fo, "config interface   'loopback'
+    option ifname  'lo'
+    option proto   'static'
+    option ipaddr  '127.0.0.1'
+    option netmask '255.0.0.0'
+    ");
+
+
+    for(let mut it = gst->ast.interfaces.keys(); map::next(&it);) {
+        let iff = (ast::Interface*)gst->ast.interfaces.get((char*)it.key.mem, it.key.size);
+        err::assert_safe(iff);
+
+        fprintf(fo, "\nconfig interface   '%.*s'\n", (int)it.key.size, it.key.mem);
+
+        switch iff->class {
+            ast::InterfaceClass::ethernet   => {
+                if iff->dhcp == ast::Dhcp::none {
+                    fprintf(fo, "    option proto   'static'\n");
+                } else {
+                    fprintf(fo, "    option proto   'dhcp'\n");
+                }
+            }
+            ast::InterfaceClass::bridge     => {
+                if iff->dhcp == ast::Dhcp::none {
+                    fprintf(fo, "    option proto   'static'\n");
+                } else {
+                    fprintf(fo, "    option proto   'dhcp'\n");
+                }
+
+                fprintf(fo, "    option type    'bridge'\n");
+                let members = (vec::Vec*)bridge2members.get(it.key.mem, it.key.size);
+
+                if members != 0 {
+                    static_attest(safe(members));
+                    static_attest(vec::integrity(members));
+
+                    fprintf(fo, "    option ifname  '");
+                    for let mut it = members->iter(); it.next(); {
+                        fprintf(fo, "%.*s ", it.val.size, it.val.mem);
+                    }
+                    fprintf(fo, "'\n");
+                }
+            }
+            ast::InterfaceClass::wifi       => {
+                if iff->dhcp == ast::Dhcp::none {
+                    fprintf(fo, "    option proto   'static'\n");
+                } else {
+                    fprintf(fo, "    option proto   'dhcp'\n");
+                }
+            }
+            ast::InterfaceClass::wireguard  => {
+            }
+        }
+
+        static_attest(vec::integrity(&iff->ipaddrs));
+        if iff->ipaddrs.count > 0 {
+            let sl = unsafe<slice::slice::Slice>(*(slice::slice::Slice*)iff->ipaddrs.items[0].mem);
+            static_attest(slice::integrity(&sl));
+
+            new+500 mut xe = buffer::from_slice(sl);
+            new+500 mut justip = buffer::make();
+            usize mut it = 0;
+            if xe.split('/', &it, &justip) {
+                fprintf(fo, "    option ipaddr  '%s'\n", justip.mem);
+                new+100 mut mask = buffer::make();
+                xe.split('/', &it, &mask);
+                usize maskc = (usize)(atoi(mask.mem));
+
+                u8 mut maskbits[4] = {0};
+                for (usize mut i = 0; i < maskc && i < 32; i++) {
+                    maskbits[i / 8] |= (u8)(1 << (i % 8));
+                }
+
+                fprintf(fo, "    option netmask '%d.%d.%d.%d'\n", maskbits[0],maskbits[1], maskbits[2], maskbits[3]);
+
+            } else {
+                fprintf(fo, "    option ipaddr  '%.*s'\n", (int)sl.size, sl.mem);
+            }
+
+        }
+
+    }
+    fclose(fo);
+
+
+
+    fo = fopen("/etc/config/wireless", "w");
+    err::assert_safe(fo);
+
+    for(let mut it = gst->ast.devices.keys(); map::next(&it);) {
+        let iff = (ast::Device*)gst->ast.devices.get((char*)it.key.mem, it.key.size);
+        err::assert_safe(iff);
+        if iff->class == ast::DeviceClass::wifi {
+            fprintf(fo, "\nconfig wifi-device '%.*s'\n", (int)it.key.size, it.key.mem);
+            fprintf(fo, "    option type    'mac80211'\n");
+
+            if iff->path.mem != 0 {
+                static_attest(slice::integrity(&iff->path));
+                new+1000 bp = buffer::from_slice(iff->path);
+                char * mut path = bp.cstr();
+
+                char *stripme = "/sys/devices/";
+
+                unsafe {
+                    if bp.at > strlen(stripme) && strncmp(path, stripme, strlen(stripme)) == 0 {
+                        path  += strlen(stripme);
+                    }
+                }
+
+                fprintf(fo, "    option path    '%s'\n", path);
+            }
+
+            if iff->wifi != 0 {
+                static_attest(safe(iff->wifi));
+                if iff->wifi->channel != 0 {
+                    fprintf(fo, "    option channel '%d'\n", iff->wifi->channel);
+                }
+                if iff->wifi->htmode.mem != 0 {
+                    fprintf(fo, "    option htmode  '%.*s'\n", (int)iff->wifi->htmode.size, iff->wifi->htmode.mem);
+                }
+
+            }
+        }
+    }
+
+    for(let mut it = gst->ast.interfaces.keys(); map::next(&it);) {
+        let iff = (ast::Interface*)gst->ast.interfaces.get((char*)it.key.mem, it.key.size);
+        err::assert_safe(iff);
+
+        if iff->class == ast::InterfaceClass::wifi {
+            fprintf(fo, "\nconfig wifi-iface '%.*s'\n", (int)it.key.size, it.key.mem);
+
+            if iff->bridge.mem != 0 {
+                fprintf(fo, "    option network '%.*s'\n", (int)iff->bridge.size, iff->bridge.mem);
+            }
+
+            if iff->device.mem != 0 {
+                fprintf(fo, "    option device '%.*s'\n", (int)iff->device.size, iff->device.mem);
+            }
+
+
+
+            if iff->wifi != 0 {
+                static_attest(safe(iff->wifi));
+                switch iff->wifi->mode {
+                    ast::WifiMode::ap => {
+                        fprintf(fo, "    option mode   'ap'\n");
+                    }
+                    ast::WifiMode::sta => {
+                        fprintf(fo, "    option mode   'sta'\n");
+                    }
+                    ast::WifiMode::monitor => {
+                        fprintf(fo, "    option mode   'monitor'\n");
+                    }
+                }
+                if iff->wifi->ssid.mem != 0 {
+                    fprintf(fo, "    option ssid   '%.*s'\n", (int)iff->wifi->ssid.size, iff->wifi->ssid.mem);
+                }
+                switch iff->wifi->auth {
+                    ast::WifiAuth::none => {
+                    }
+                    ast::WifiAuth::psk2=> {
+                        fprintf(fo, "    option encryption 'psk2'\n");
+                    }
+                }
+                if iff->wifi->key.mem != 0 {
+                    fprintf(fo, "    option key    '%.*s'\n", (int)iff->wifi->key.size,  iff->wifi->key.mem);
+                }
+            }
+        }
+    }
+    fclose(fo);
+
+
+
+    system("/etc/init.d/network reload");
+}
+

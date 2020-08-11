@@ -1,0 +1,83 @@
+{
+  "interfaces": {
+    "public": {
+      "class": "bridge",
+      "ipaddrs": [
+        "192.168.44.1/24"
+      ],
+      "zone": "public"
+    },
+    "wan": {
+      "class":  "bridge",
+      "dhcp":   "all",
+      "zone":   "wan"
+    },
+    "eth0": {
+      "device": "eth0",
+      "bridge": "wan"
+    },
+    "eth1": {
+      "device": "eth1",
+      "bridge": "wan"
+    },
+    "publicap": {
+      "class":      "wifi",
+      "device":     "wifi1",
+      "bridge":     "public",
+      "wifi":  {
+        "mode" : "ap",
+        "ssid":  "HereBeSsid"
+      }
+    },
+    "monitor": {
+      "class": "wifi",
+      "device": "wifi0",
+      "wifi":  {
+        "mode" : "monitor"
+      }
+    },
+    "scan": {
+      "class": "wifi",
+      "device": "wifi0",
+      "wifi":  {
+        "mode" : "sta"
+      }
+    }
+  },
+  "devices": {
+    "wifi0": {
+      "class": "wifi",
+      "path": "/sys/devices/platform/ahb/18100000.wmac",
+      "wifi": {
+        "channel": 11
+      }
+    },
+    "wifi1": {
+      "class": "wifi",
+      "path": "/sys/devices/platform/ahb/1b000000.usb/ci_hdrc.0/usb1/1-1/1-1:1.0",
+      "wifi": {
+        "channel": 11
+      }
+    }
+  },
+  "zone": {
+    "wan": {
+      "input": [
+        "drop"
+      ],
+      "output": [
+        "accept"
+      ]
+    },
+    "public": {
+      "input": [
+        "drop"
+      ],
+      "output": [
+        "drop"
+      ],
+      "forward": "wan"
+    }
+  },
+  "captif": {}
+}

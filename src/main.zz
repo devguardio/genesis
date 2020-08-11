@@ -1,0 +1,131 @@
+using log;
+using err;
+using map;
+using buffer;
+using slice;
+using pool;
+
+using ast;
+using openwrt;
+using <stdio.h>::{fprintf, printf, stderr, FILE, fopen, fclose, rename, perror};
+using <unistd.h>::{unlink};
+using <sys/stat.h>::{stat, (struct stat) as stat_t};
+
+static char * USAGE = "
+devguard genesis
+
+Usage:
+    genesis <subcommand>
+
+Subcommands:
+    apply       apply current (call on change)
+    tick        after 10 times, apply stable, remove current (call on carrier republish)
+    boot        apply stable, remove current (call on boot)
+    settle      move current to stable (call when current system works)
+";
+
+
+export fn main(int argc, char **argv) -> int
+    where len(argv) == (usize)argc
+{
+    if argc > 1 {
+        char * arg = argv[1];
+        static_attest(safe(arg));
+        static_attest(nullterm(arg));
+        if buffer::cstr_eq(arg, "apply") {
+
+            apply();
+
+            char * mut tickpath = "/tmp/genesis_tick";
+            FILE mut * mut fp = fopen(tickpath, "w");
+            fprintf(fp, "1\n");
+            fclose(fp);
+
+            return 0;
+
+        } else if buffer::cstr_eq(arg, "tick") {
+
+            char * mut tickpath = "/tmp/genesis_tick";
+
+            new+100 b = buffer::make();
+            FILE mut * mut fp = fopen(tickpath, "r");
+            if fp == 0 {
+                log::info("settle tick no-op");
+                return 0;
+            }
+            b.fread(fp);
+            fclose(fp);
+            let sl = b.as_slice();
+            let mut tick = (int)sl.atoi(10);
+            if tick > 10 {
+                log::info("reverting");
+                if unlink("/etc/config/genesis/current.json") != 0 {
+                    perror("unlink /etc/config/genesis/current.json");
+                }
+                if unlink("/tmp/genesis_tick") != 0 {
+                    perror("unlink /tmp/genesis_tick");
+                }
+                apply();
+            } else {
+                tick = tick + 1;
+                log::info("settle tick %d", tick);
+
+                fp = fopen(tickpath, "w");
+                fprintf(fp, "%d\n", tick);
+                fclose(fp);
+            }
+
+            return 0;
+
+        } else if buffer::cstr_eq(arg, "boot") {
+
+            log::info("booting");
+            unlink("/etc/config/genesis/current.json");
+            unlink("/tmp/genesis_tick");
+            apply();
+            return 0;
+
+        } else if buffer::cstr_eq(arg, "settle") {
+            if unlink("/tmp/genesis_tick") != 0 {
+                perror("unlink /tmp/genesis_tick");
+            }
+            stat_t mut b;
+            if stat("/etc/config/genesis/current.json", &b) == 0 {
+                rename("/etc/config/genesis/current.json", "/etc/config/genesis/stable.json");
+                log::info("settled");
+            } else {
+                log::info("settle no-op");
+            }
+            return 0;
+        }
+    }
+
+    fprintf(stderr, "%s", USAGE);
+    return 1;
+}
+
+fn apply() {
+    new+1000 e = err::make();
+
+    char * mut jsonpath = "etc/config/genesis/current.json";
+    FILE mut * mut fp = fopen(jsonpath, "r");
+    if fp == 0 {
+        jsonpath = "etc/config/genesis/stable.json";
+        fp = fopen(jsonpath, "r");
+        if fp != 0 {
+            log::info("appying stable");
+        }
+    } else {
+        log::info("appying current");
+    }
+    if fp == 0 {
+        e.fail_with_errno("open %s", jsonpath);
+        e.abort();
+        return;
+    }
+
+    new gst = ast::from_json_file(&e, fp);
+    e.abort();
+
+    openwrt::emit(&gst);
+}

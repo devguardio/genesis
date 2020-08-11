@@ -1,0 +1,131 @@
+using vec;
+using log;
+using err;
+using map;
+using buffer;
+using slice;
+using pool;
+using mem;
+using json;
+
+using <stdio.h>::{FILE, fopen, fclose, fprintf}
+using <string.h>::{strdup, memcpy};
+
+
+export enum InterfaceClass  @json::from() {
+    ethernet,
+    wifi,
+    bridge,
+    wireguard,
+}
+
+export enum WifiAuth  @json::from() {
+    none,
+    psk2,
+}
+
+export struct WifiNetwork  @json::from() {
+    slice::Slice    ssid;
+    slice::Slice    key;
+    WifiAuth        auth;
+}
+
+pub enum WifiMode @json::from()  {
+    ap,
+    sta,
+    monitor,
+}
+
+export struct WifiInterface @json::from()  {
+    WifiMode        mode;
+    slice::Slice    ssid;
+    slice::Slice    key;
+    WifiAuth        auth;
+}
+
+export type StringList @json::from() = vec::Vec[vec::item = char];
+
+export struct WireguardPeer @json::from() {
+    slice::Slice    public_key;
+    slice::Slice    endpoint;
+    bool            autoroute;
+    slice::Slice    psk;
+    u32             keepalive;
+    StringList      routes;
+}
+
+export struct WireguardInterface @json::from() {
+    slice::Slice    private_key;
+    StringList      peers;
+}
+
+export enum Dhcp @json::from() {
+    none,
+    ipv4,
+    ipv6,
+    all,
+}
+
+export type IpVec @json::from() = vec::Vec[vec::item=slice::Slice, +0];
+
+export struct Interface @json::from() {
+    slice::Slice    mut device;
+    InterfaceClass  mut class;
+    slice::Slice    mut bridge;
+    slice::Slice    mut nat;
+    Dhcp            mut dhcp;
+    slice::Slice    mut gateway;
+
+    IpVec           mut ipaddrs;
+    IpVec           mut dns;
+
+    WireguardInterface  * wg;
+    WifiInterface       * wifi;
+}
+export type InterfaceMap @json::from() = map::Map[map::key=char, map::val=Interface, +0];
+
+export struct WifiDevice @json::from() {
+    uint            channel;
+    slice::Slice    htmode;
+}
+
+export enum DeviceClass @json::from() {
+    none,
+    wifi,
+}
+
+export struct Device @json::from() {
+    DeviceClass     class;
+    slice::Slice    path;
+    WifiDevice *    wifi;
+}
+export type DeviceMap @json::from() = map::Map[map::key=char, map::val=Device,+0];
+
+
+export struct Ast @json::from() {
+    InterfaceMap    mut interfaces;
+    DeviceMap       mut devices;
+}
+
+export struct Genesis {
+    Ast ast;
+    pool::Pool+10000 mut pool;
+}
+
+
+export fn from_json_file(Genesis mut new* self, err::Err mut *e, FILE mut * unsafe fp)
+    where err::checked(*e)
+{
+    mem::zero(&self->ast);
+    self->pool.make(32);
+
+    new+100000 s = buffer::make();
+    for (; s.fread(fp) ; ) {}
+    fclose(fp);
+
+    new+20000 decoder = json::decode(e, s.cstr(), s.slen());
+    if err::check(e) { return; }
+    (@json::from(Ast))(&self->ast, e, &decoder, &self->pool);
+    if err::check(e) { return; }
+
+}

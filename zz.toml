@@ -1,0 +1,26 @@
+[project]
+version = "0.1.0"
+name = "genesis"
+cincludes = []
+cobjects = []
+pkgconfig = []
+cflags = []
+
+[dependencies]
+log     = "1"
+mem     = "1"
+err     = "1"
+map     = "1"
+vec     = "1"
+json    = "1"
+
+
+[[artifacts]]
+type = "make"
+name = "genesis"
+main = "genesis::main"
+
+[[artifacts]]
+type = "exe"
+name = "genesis"
+main = "genesis::main"
