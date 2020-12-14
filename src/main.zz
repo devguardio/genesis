@@ -19,8 +19,8 @@ Usage:
 
 Subcommands:
     apply       apply current (call on change)
-    tick        after 10 times, apply stable, remove current (call on carrier republish)
-    boot        apply stable, remove current (call on boot)
+    tick        after 10 times, apply stable, remove current (call on boot before 10system)
+    boot        just write stable config, remove current (call before /sbin/reload_config)
     settle      move current to stable (call when current system works)
 ";
 
@@ -32,9 +32,11 @@ export fn main(int argc, char **argv) -> int
         char * arg = argv[1];
         static_attest(safe(arg));
         static_attest(nullterm(arg));
-        if buffer::cstr_eq(arg, "apply") {
+        if buffer::cstr_eq(arg, "firstboot") {
+            apply(false);
+        } if buffer::cstr_eq(arg, "apply") {
 
-            apply();
+            apply(true);
 
             char * mut tickpath = "/tmp/genesis_tick";
             FILE mut * mut fp = fopen(tickpath, "w");
@@ -65,7 +67,7 @@ export fn main(int argc, char **argv) -> int
                 if unlink("/tmp/genesis_tick") != 0 {
                     perror("unlink /tmp/genesis_tick");
                 }
-                apply();
+                apply(true);
             } else {
                 tick = tick + 1;
                 log::info("settle tick %d", tick);
@@ -82,7 +84,7 @@ export fn main(int argc, char **argv) -> int
             log::info("booting");
             unlink("/etc/config/genesis/current.json");
             unlink("/tmp/genesis_tick");
-            apply();
+            apply(false);
             return 0;
 
         } else if buffer::cstr_eq(arg, "settle") {
@@ -104,7 +106,7 @@ export fn main(int argc, char **argv) -> int
     return 1;
 }
 
-fn apply() {
+fn apply(bool notify_openwrt) {
     new+1000 e = err::make();
 
     char * mut jsonpath = "etc/config/genesis/current.json";
@@ -127,5 +129,5 @@ fn apply() {
     new gst = ast::from_json_file(&e, fp);
     e.abort();
 
-    openwrt::emit(&gst);
+    openwrt::emit(&gst, notify_openwrt);
 }

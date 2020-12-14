@@ -11,7 +11,7 @@ using <string.h>::{strncmp, strlen};
 using <stdlib.h>::{atoi, system};
 using <stdio.h>::{FILE, fopen, fclose, fprintf}
 
-pub fn emit(ast::Genesis *gst)
+pub fn emit(ast::Genesis *gst, bool notify_openwrt)
 {
     new+10000 pl = pool::make(64);
     new[map::key=char, +0] bridge2members = map::make_with_pool(&pl);
@@ -187,6 +187,7 @@ pub fn emit(ast::Genesis *gst)
 
         if iff->class == ast::InterfaceClass::wifi {
             fprintf(fo, "\nconfig wifi-iface '%.*s'\n", (int)it.key.size, it.key.mem);
+            fprintf(fo, "    option ifname '%.*s'\n", (int)it.key.size, it.key.mem);
 
             if iff->bridge.mem != 0 {
                 fprintf(fo, "    option network '%.*s'\n", (int)iff->bridge.size, iff->bridge.mem);
@@ -230,7 +231,8 @@ pub fn emit(ast::Genesis *gst)
     fclose(fo);
 
 
-
-    system("/etc/init.d/network reload");
+    if notify_openwrt {
+        system("/etc/init.d/network reload");
+    }
 }
 
