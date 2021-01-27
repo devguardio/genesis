@@ -231,8 +231,10 @@ pub fn emit(ast::Genesis *gst, bool notify_openwrt)
     fclose(fo);
 
 
+    system("/etc/devguard/genesis/change");
     if notify_openwrt {
         system("/etc/init.d/network reload");
+        system("/etc/devguard/genesis/apply");
     }
 }
 
