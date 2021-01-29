@@ -6,7 +6,7 @@ extern crate toml;
 
 use std::fs::File;
 use std::io::{Read};
-use carrier::osaka::{self, osaka};
+use carrier_rs::osaka::{self, osaka};
 
 pub mod genesis;
 
@@ -22,12 +22,12 @@ fn map_err<E: std::error::Error> (e: E) -> std::io::Error {
 
 pub fn genesis_stream(
     poll: osaka::Poll,
-    headers: carrier::headers::Headers,
-    _: &carrier::identity::Identity,
-    mut stream: carrier::endpoint::Stream,
+    headers: carrier_rs::headers::Headers,
+    _: &carrier_rs::identity::Identity,
+    mut stream: carrier_rs::endpoint::Stream,
 ) -> Option<osaka::Task<()>> {
 
-    let gdir = carrier::config::persistence_dir().join("genesis");
+    let gdir = carrier_rs::config::persistence_dir().join("genesis");
     match std::fs::create_dir_all(&gdir) {
         Ok(_) => (),
         Err(e) => {
@@ -42,15 +42,15 @@ pub fn genesis_stream(
         Ok(v) => v,
         Err(e) => {
             log::warn!("cannot open {:?}: {}", p, e);
-            stream.send(carrier::headers::Headers::with_error(503, "misconfigured").encode());
+            stream.send(carrier_rs::headers::Headers::with_error(503, "misconfigured").encode());
             return None;
         }
     };
 
-    let sha256 = match carrier::util::sha256file(&p) {
+    let sha256 = match carrier_rs::util::sha256file(&p) {
         Err(e) => {
             log::warn!("sha err {}", e);
-            stream.send(carrier::headers::Headers::with_error(503, "misconfigured").encode());
+            stream.send(carrier_rs::headers::Headers::with_error(503, "misconfigured").encode());
             return None;
         },
         Ok(v) => v,
@@ -58,10 +58,10 @@ pub fn genesis_stream(
 
     match headers.get(b":method") {
         None | Some(b"GET") => {
-            stream.send(carrier::headers::Headers::ok().encode());
+            stream.send(carrier_rs::headers::Headers::ok().encode());
             let mut s = Vec::new();
             f.read_to_end(&mut s).unwrap();
-            stream.message(carrier::proto::GenesisCurrent{
+            stream.message(carrier_rs::proto::GenesisCurrent{
                 sha256,
                 commit: String::new(),
                 data:   s,
@@ -69,8 +69,8 @@ pub fn genesis_stream(
             });
         },
         Some(b"HEAD") => {
-            stream.send(carrier::headers::Headers::ok().encode());
-            stream.message(carrier::proto::GenesisCurrent{
+            stream.send(carrier_rs::headers::Headers::ok().encode());
+            stream.message(carrier_rs::proto::GenesisCurrent{
                 sha256,
                 commit: String::new(),
                 data:   Vec::new(),
@@ -78,11 +78,11 @@ pub fn genesis_stream(
             });
         },
         Some(b"POST") => {
-            stream.send(carrier::headers::Headers::with_error(100, "go ahead").encode());
+            stream.send(carrier_rs::headers::Headers::with_error(100, "go ahead").encode());
             return Some(genesis_post_handler(poll, stream, gdir.clone()));
         }
         _ => {
-            stream.send(carrier::headers::Headers::with_error(404, "no such method").encode());
+            stream.send(carrier_rs::headers::Headers::with_error(404, "no such method").encode());
             return None;
         }
     }
@@ -92,27 +92,27 @@ pub fn genesis_stream(
 
 
 #[osaka]
-fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier::endpoint::Stream, gdir: std::path::PathBuf) {
-    use carrier::prost::Message;
+fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier_rs::endpoint::Stream, gdir: std::path::PathBuf) {
+    use carrier_rs::prost::Message;
     use std::io::Write;
 
     let mut p = gdir.join("current.toml");
     if !p.exists() {
         p = gdir.join("stable.toml");
     }
-    let sha256 = match carrier::util::sha256file(&p) {
+    let sha256 = match carrier_rs::util::sha256file(&p) {
         Err(e) => {
             log::warn!("sha err {}", e);
-            stream.send(carrier::headers::Headers::with_error(503, format!("{:?}", e)).encode());
+            stream.send(carrier_rs::headers::Headers::with_error(503, format!("{:?}", e)).encode());
             return;
         },
         Ok(v) => v,
     };
 
     let m = osaka::sync!(stream);
-    let m = match carrier::proto::GenesisUpdate::decode(&m) {
+    let m = match carrier_rs::proto::GenesisUpdate::decode(&m) {
         Err(e) => {
-            stream.send(carrier::headers::Headers::with_error(400, format!("{:?}", e)).encode());
+            stream.send(carrier_rs::headers::Headers::with_error(400, format!("{:?}", e)).encode());
             log::warn!("proto: {:?}", e);
             return;
         },
@@ -120,13 +120,13 @@ fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier::endpoint::Strea
     };
 
     if m.previous_sha256 != sha256 {
-        stream.send(carrier::headers::Headers::with_error(408, "outdated handle").encode());
+        stream.send(carrier_rs::headers::Headers::with_error(408, "outdated handle").encode());
         return;
     }
 
     let g : genesis::Genesis = match toml::de::from_slice(&m.data) {
         Err(e) => {
-            stream.send(carrier::headers::Headers::with_error(400, format!("{:?}", e)).encode());
+            stream.send(carrier_rs::headers::Headers::with_error(400, format!("{:?}", e)).encode());
             log::warn!("toml: {:?}", e);
             return;
         }
@@ -144,7 +144,7 @@ fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier::endpoint::Strea
 
     match em.load(&g) {
         Err(e) => {
-            stream.send(carrier::headers::Headers::with_error(400, format!("{:?}", e)).encode());
+            stream.send(carrier_rs::headers::Headers::with_error(400, format!("{:?}", e)).encode());
             log::warn!("{:?}", e);
             return;
         }
@@ -161,25 +161,25 @@ fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier::endpoint::Strea
             f.write_all(&m.data)
         });
     if let Err(e) = r {
-        stream.send(carrier::headers::Headers::with_error(500, format!("{:?}", e)).encode());
+        stream.send(carrier_rs::headers::Headers::with_error(500, format!("{:?}", e)).encode());
         log::warn!("{:?}", e);
         return;
     }
 
     let r = std::fs::File::create(&gdir.join("changing")).and_then(|mut f|f.write_all(b"0"));
     if let Err(e) = r {
-        stream.send(carrier::headers::Headers::with_error(500, format!("{:?}", e)).encode());
+        stream.send(carrier_rs::headers::Headers::with_error(500, format!("{:?}", e)).encode());
         log::warn!("{:?}", e);
         return;
     }
 
     if let Err(e) = em.commit() {
-        stream.send(carrier::headers::Headers::with_error(500, format!("{:?}", e)).encode());
+        stream.send(carrier_rs::headers::Headers::with_error(500, format!("{:?}", e)).encode());
         log::warn!("{:?}", e);
         return;
     }
 
-    stream.send(carrier::headers::Headers::ok().encode());
+    stream.send(carrier_rs::headers::Headers::ok().encode());
 
     std::thread::spawn(||{
         std::thread::sleep(std::time::Duration::from_secs(10));
@@ -189,7 +189,7 @@ fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier::endpoint::Strea
 
 
 pub fn genesis() -> Result<(), std::io::Error> {
-    let gdir = carrier::config::persistence_dir().join("genesis");
+    let gdir = carrier_rs::config::persistence_dir().join("genesis");
 
     let mut f = File::open(gdir.join("current.toml")).or_else(|_|File::open(gdir.join("stable.toml")))?;
     let mut s = Vec::new();
@@ -214,7 +214,7 @@ pub fn genesis() -> Result<(), std::io::Error> {
 pub fn stabilize(stable: bool) {
     use std::io::Write;
 
-    let gdir = carrier::config::persistence_dir().join("genesis");
+    let gdir = carrier_rs::config::persistence_dir().join("genesis");
     match std::fs::create_dir_all(&gdir) {
         Ok(_) => (),
         Err(e) => {
