@@ -101,10 +101,15 @@ export struct Device @json::from() {
 }
 export type DeviceMap @json::from() = map::Map[map::key=char, map::val=Device,+0];
 
+export struct Captif  @json::from() {
+    slice::Slice    mut url;
+    u32             mut expires;
+}
 
 export struct Ast @json::from() {
     InterfaceMap    mut interfaces;
     DeviceMap       mut devices;
+    Captif          mut captif;
 }
 
 export struct Genesis {
