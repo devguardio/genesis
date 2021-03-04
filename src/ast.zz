@@ -43,7 +43,7 @@ export struct WifiInterface @json::from()  {
     WifiAuth        auth;
 }
 
-export type StringList @json::from() = vec::Vec[vec::item = char];
+export type RouteList @json::from() = vec::Vec[vec::item = slice::Slice];
 
 export struct WireguardPeer @json::from() {
     slice::Slice    public_key;
@@ -51,12 +51,14 @@ export struct WireguardPeer @json::from() {
     bool            autoroute;
     slice::Slice    psk;
     u32             keepalive;
-    StringList      routes;
+    RouteList       routes;
 }
 
+export type WireguardPeerList @json::from() = vec::Vec[vec::item = WireguardPeer];
+
 export struct WireguardInterface @json::from() {
-    slice::Slice    private_key;
-    StringList      peers;
+    slice::Slice        private_key;
+    WireguardPeerList   peers;
 }
 
 export enum Dhcp @json::from() {
@@ -79,7 +81,7 @@ export struct Interface @json::from() {
     IpVec           mut ipaddrs;
     IpVec           mut dns;
 
-    WireguardInterface  * wg;
+    WireguardInterface  * wireguard;
     WifiInterface       * wifi;
 }
 export type InterfaceMap @json::from() = map::Map[map::key=char, map::val=Interface, +0];

@@ -107,32 +107,99 @@ pub fn emit(ast::Genesis *gst, bool notify_openwrt)
                 }
             }
             ast::InterfaceClass::wireguard  => {
+                fprintf(fo, "    option proto   'wireguard'\n");
+                fprintf(fo, "    option disabled '0'\n");
+
+
+                if iff->wireguard != 0 {
+                    static_attest(safe(iff->wireguard));
+                    static_attest(slice::integrity(&iff->wireguard->private_key));
+                    fprintf(fo, "    option private_key '%.*s'\n",
+                        (int)iff->wireguard->private_key.size, iff->wireguard->private_key.mem);
+                }
+
+                static_attest(vec::integrity(&iff->ipaddrs));
+                for usize mut i = 0; i < iff->ipaddrs.count ; i++ {
+                    let sl = unsafe<slice::slice::Slice>(*(slice::slice::Slice*)iff->ipaddrs.items[i].mem);
+                    static_attest(slice::integrity(&sl));
+                    fprintf(fo, "    list addresses '%.*s'\n", (int)sl.size, sl.mem);
+                }
+
+
+                static_attest(vec::integrity(&iff->wireguard->peers));
+                for usize mut i = 0; i < iff->wireguard->peers.count ; i++ {
+                    let peer = (ast::WireguardPeer*)iff->wireguard->peers.items[i].mem;
+                    static_attest(safe(peer));
+
+                    fprintf(fo, "\nconfig 'wireguard_%.*s'\n", (int)it.key.size, it.key.mem);
+
+                    fprintf(fo, "    option public_key '%.*s'\n",
+                        (int)peer->public_key.size, peer->public_key.mem);
+
+                    if  peer->autoroute {
+                        fprintf(fo, "    option route_allowed_ips '1'\n");
+                    } else {
+                        fprintf(fo, "    option route_allowed_ips '0'\n");
+                    }
+
+                    if peer->psk.size > 0 {
+                        fprintf(fo, "    option preshared_key '%.*s'\n",
+                                (int)peer->psk.size, peer->psk.mem);
+                    }
+
+                    if peer->keepalive !=0 {
+                        fprintf(fo, "    option persistent_keepalive '%d'\n", (int)peer->keepalive);
+                    }
+
+                    static_attest(slice::integrity(&peer->endpoint));
+
+                    new+500 mut xe = buffer::from_slice(peer->endpoint);
+                    new+500 mut justip = buffer::make();
+                    usize mut it = 0;
+                    if xe.split(':', &it, &justip) {
+                        fprintf(fo, "    option endpoint_host '%s'\n", justip.mem);
+                        new+100 mut port = buffer::make();
+                        xe.split(':', &it, &port);
+                        fprintf(fo, "    option endpoint_port '%s'\n", port.mem);
+                    }
+
+                    for usize mut i2 = 0; i2 < peer->routes.count ; i2++ {
+                        let sl = unsafe<slice::slice::Slice>(*(slice::slice::Slice*)peer->routes.items[i2].mem);
+                        static_attest(slice::integrity(&sl));
+                        fprintf(fo, "    list allowed_ips '%.*s'\n", sl.size, sl.mem);
+                    }
+                }
             }
         }
 
-        static_attest(vec::integrity(&iff->ipaddrs));
-        if iff->ipaddrs.count > 0 {
-            let sl = unsafe<slice::slice::Slice>(*(slice::slice::Slice*)iff->ipaddrs.items[0].mem);
-            static_attest(slice::integrity(&sl));
 
-            new+500 mut xe = buffer::from_slice(sl);
-            new+500 mut justip = buffer::make();
-            usize mut it = 0;
-            if xe.split('/', &it, &justip) {
-                fprintf(fo, "    option ipaddr  '%s'\n", justip.mem);
-                new+100 mut mask = buffer::make();
-                xe.split('/', &it, &mask);
-                usize maskc = (usize)(atoi(mask.mem));
+        if iff->class != ast::InterfaceClass::wireguard {
 
-                u8 mut maskbits[4] = {0};
-                for (usize mut i = 0; i < maskc && i < 32; i++) {
-                    maskbits[i / 8] |= (u8)(1 << (i % 8));
+            static_attest(vec::integrity(&iff->ipaddrs));
+            if iff->ipaddrs.count > 0 {
+                let sl = unsafe<slice::slice::Slice>(*(slice::slice::Slice*)iff->ipaddrs.items[0].mem);
+                static_attest(slice::integrity(&sl));
+
+                new+500 mut xe = buffer::from_slice(sl);
+                new+500 mut justip = buffer::make();
+                usize mut it = 0;
+                if xe.split('/', &it, &justip) {
+                    fprintf(fo, "    option ipaddr  '%s'\n", justip.mem);
+                    new+100 mut mask = buffer::make();
+                    xe.split('/', &it, &mask);
+                    usize maskc = (usize)(atoi(mask.mem));
+
+                    u8 mut maskbits[4] = {0};
+                    for (usize mut i = 0; i < maskc && i < 32; i++) {
+                        maskbits[i / 8] |= (u8)(1 << (i % 8));
+                    }
+
+                    fprintf(fo, "    option netmask '%d.%d.%d.%d'\n", maskbits[0],maskbits[1], maskbits[2], maskbits[3]);
+
+                } else {
+                    fprintf(fo, "    option ipaddr  '%.*s'\n", (int)sl.size, sl.mem);
                 }
 
-                fprintf(fo, "    option netmask '%d.%d.%d.%d'\n", maskbits[0],maskbits[1], maskbits[2], maskbits[3]);
-
-            } else {
-                fprintf(fo, "    option ipaddr  '%.*s'\n", (int)sl.size, sl.mem);
             }
 
         }
