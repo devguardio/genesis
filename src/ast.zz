@@ -31,6 +31,7 @@ export struct WifiNetwork  @json::from() {
 }
 
 pub enum WifiMode @json::from()  {
+    invalid = 0,
     ap,
     sta,
     monitor,
