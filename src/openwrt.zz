@@ -269,6 +269,9 @@ pub fn emit(ast::Genesis *gst, bool notify_openwrt)
             if iff->wifi != 0 {
                 static_attest(safe(iff->wifi));
                 switch iff->wifi->mode {
+                    ast::WifiMode::mesh => {
+                        fprintf(fo, "    option mode   'mesh'\n");
+                    }
                     ast::WifiMode::ap => {
                         fprintf(fo, "    option mode   'ap'\n");
                     }
@@ -278,6 +281,9 @@ pub fn emit(ast::Genesis *gst, bool notify_openwrt)
                     ast::WifiMode::monitor => {
                         fprintf(fo, "    option mode   'monitor'\n");
                     }
+                }
+                if iff->wifi->mesh_id.mem != 0 {
+                    fprintf(fo, "    option mesh_id '%.*s'\n", (int)iff->wifi->mesh_id.size, iff->wifi->mesh_id.mem);
                 }
                 if iff->wifi->ssid.mem != 0 {
                     fprintf(fo, "    option ssid   '%.*s'\n", (int)iff->wifi->ssid.size, iff->wifi->ssid.mem);

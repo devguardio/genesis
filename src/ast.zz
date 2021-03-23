@@ -34,11 +34,13 @@ pub enum WifiMode @json::from()  {
     ap,
     sta,
     monitor,
+    mesh,
 }
 
 export struct WifiInterface @json::from()  {
     WifiMode        mode;
     slice::Slice    ssid;
+    slice::Slice    mesh_id;
     slice::Slice    key;
     WifiAuth        auth;
 }
