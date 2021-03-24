@@ -92,6 +92,7 @@ export type InterfaceMap @json::from() = map::Map[map::key=char, map::val=Interf
 export struct WifiDevice @json::from() {
     uint            channel;
     slice::Slice    htmode;
+    slice::Slice    country;
 }
 
 export enum DeviceClass @json::from() {

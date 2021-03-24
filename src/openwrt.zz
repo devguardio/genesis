@@ -243,6 +243,9 @@ pub fn emit(ast::Genesis *gst, bool notify_openwrt)
                 if iff->wifi->htmode.mem != 0 {
                     fprintf(fo, "    option htmode  '%.*s'\n", (int)iff->wifi->htmode.size, iff->wifi->htmode.mem);
                 }
+                if iff->wifi->country.mem != 0 {
+                    fprintf(fo, "    option country  '%.*s'\n", (int)iff->wifi->country.size, iff->wifi->country.mem);
+                }
 
             }
         }
