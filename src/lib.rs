@@ -154,7 +154,12 @@ fn genesis_post_handler(_poll: osaka::Poll, mut stream: carrier_rs::endpoint::St
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .unwrap_or(std::time::Duration::default()).as_secs();
 
-    let p = gdir.join("current.toml");
+    let mut p = gdir.join("current.toml");
+    if !g.force.is_empty()  {
+        std::fs::remove_file(p);
+        p = gdir.join("stable.toml");
+    }
+
     let r = std::fs::File::create(&p)
         .and_then(|mut f|{
             write!(f, "#commit {} {}\n", unixtime, m.commit.replace("\n"," \\ "))?;

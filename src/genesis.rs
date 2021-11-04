@@ -103,6 +103,8 @@ pub struct Template {
 #[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct Genesis {
     #[serde(default)]
+    pub force:      String,
+    #[serde(default)]
     pub interface:  HashMap<String, Interface>,
     #[serde(default)]
     pub device:     HashMap<String, Device>,

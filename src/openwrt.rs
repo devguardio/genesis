@@ -12,6 +12,8 @@ struct Interface {
     dhcp:       bool,
     typ:        Option<String>,
     ipaddr:     Option<(String, String)>,
+    gateway:    Option<String>,
+    dns:        Option<Vec<String>>,
 }
 
 pub struct Device {
@@ -71,11 +73,22 @@ config interface   'loopback'
 
             if v.dhcp {
                 write!(&mut self.out_network,"    option proto   'dhcp'\n")?;
-            } else if let Some((ipaddr, mask)) = &v.ipaddr {
+            }
+            if let Some((ipaddr, mask)) = &v.ipaddr {
                 write!(&mut self.out_network,"    option proto   'static'\n")?;
                 write!(&mut self.out_network,"    option ipaddr  '{}'\n",  ipaddr)?;
                 write!(&mut self.out_network,"    option netmask '{}'\n", mask)?;
             }
+
+            if let Some(gw) = &v.gateway{
+                write!(&mut self.out_network,"    option gateway '{}'\n", gw)?;
+            }
+            if let Some(dns) = &v.dns{
+                for dns in dns {
+                    write!(&mut self.out_network,"    list dns '{}'\n", dns)?;
+                }
+            }
+
             write!(&mut self.out_network, "\n")?;
         }
 
@@ -243,6 +256,9 @@ config wifi-iface   '{}'
                 i.ipaddr = Some((format!("{}", ip.addr()), format!("{}", ip.netmask())));
             }
         }
+
+        i.gateway   = interface.gateway.clone();
+        i.dns       = interface.dns.clone();
 
         match &interface.dhcp {
             Some(toml::value::Value::String(s)) =>  {
