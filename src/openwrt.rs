@@ -169,6 +169,11 @@ config wifi-device '{}'
                 self.interfaces.get_mut(name).unwrap().typ = Some("bridge".to_string());
             },
             Some("wifi") => {
+                if interface.bridge.is_none() {
+                    let mut interface = interface.clone();
+                    interface.device = None;
+                    self.create_interface(name.clone(), &interface)?;
+                }
                 return self.wifi(name, interface);
             },
             Some("wireguard") => {
@@ -213,7 +218,9 @@ config wifi-iface   '{}'
 
         if let Some(br) = &interface.bridge {
             write!(&mut self.out_wireless , "    option network  '{}'\n", br)?;
-        };
+        } else {
+            write!(&mut self.out_wireless , "    option network  '{}'\n", name)?;
+        }
 
         if let Some(v) = &w.ssid {
             write!(&mut self.out_wireless , "    option ssid     '{}'\n", v)?;
